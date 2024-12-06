@@ -43,24 +43,35 @@ export default function EditProfilePage() {
     console.log("Profile picture:", profilePicture);
 
     try {
-      const response = await fetch("http://localhost:8080/v1/user", {
-        credentials: 'include',
-        method: "PUT", // Assuming a PUT request for updating user data
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          fullName: profileData.name,
-          occupation: profileData.occupation,
-          hobbies: profileData.hobbies,
-          profilePic: profilePicture, // If your backend expects this
-        }),
+      // const response = await fetch("http://localhost:8080/v1/user", {
+      //   credentials: 'include',
+      //   method: "PUT", // Assuming a PUT request for updating user data
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   credentials: 'include',
+      //   body: JSON.stringify({
+      //     fullName: profileData.name,
+      //     occupation: profileData.occupation,
+      //     hobbies: profileData.hobbies,
+      //     profilePic: profilePicture, // If your backend expects this
+      //   }),
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error("Failed to save user data");
+      // }
+      axiosInstance.put("http://localhost:8080/v1/user", {
+        fullName: profileData.name,
+        occupation: profileData.occupation,
+        hobbies: profileData.hobbies,
+        profilePic: profilePicture,
+      }).then((response) => {
+        console.log("Profile data saved successfully!");
+      }).catch((error) => {
+        console.error("Error saving user data:", error);
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to save user data");
-      }
 
       console.log("Profile data saved successfully!");
     } catch (error) {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
+import { axiosInstance } from "@/utils/axiosInstance";
 
 export default function JournalPage() {
   const [journals, setJournals] = useState({});
@@ -14,16 +15,38 @@ export default function JournalPage() {
   useEffect(() => {
     const fetchJournals = async () => {
       try {
-        const response = await fetch("http://localhost:8080/v1/journals", {
-          credentials: 'include',
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        // const response = await fetch("http://localhost:8080/v1/journals", {
+        //   credentials: 'include',
+        //   method: "GET",
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //   },
+        // });
 
-        if (response.ok) {
-          const data = await response.json();
+        // if (response.ok) {
+        //   const data = await response.json();
+
+        //   // Group journals by date
+        //   const groupedJournals = data.content.reduce((acc, journal) => {
+        //     const date = new Date(journal.createdAt).toLocaleDateString("en-US", {
+        //       year: "numeric",
+        //       month: "long",
+        //       day: "numeric",
+        //     });
+
+        //     if (!acc[date]) acc[date] = [];
+        //     acc[date].push(journal);
+        //     return acc;
+        //   }, {});
+
+        //   setJournals(groupedJournals);
+        // } else {
+        //   console.error("Failed to fetch journals");
+        // }
+
+        axiosInstance.get("http://localhost:8080/v1/journals").then((response) => {
+          console.log("Journals fetched successfully!");
+          const data = response.data;
 
           // Group journals by date
           const groupedJournals = data.content.reduce((acc, journal) => {
@@ -39,9 +62,9 @@ export default function JournalPage() {
           }, {});
 
           setJournals(groupedJournals);
-        } else {
-          console.error("Failed to fetch journals");
-        }
+        }).catch((error) => {
+          console.error("Error fetching journals:", error);
+        });
       } catch (error) {
         console.error("Error fetching journals:", error);
       }
@@ -71,18 +94,40 @@ export default function JournalPage() {
     };
 
     try {
-      const response = await fetch("http://localhost:8080/v1/journals", {
-        credentials: 'include',
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(journalData),
-      });
+      // const response = await fetch("http://localhost:8080/v1/journals", {
+      //   credentials: 'include',
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(journalData),
+      // });
 
-      if (response.ok) {
-        const savedJournal = await response.json();
+      // if (response.ok) {
+      //   const savedJournal = await response.json();
+      //   alert("Journal saved successfully!");
+
+      //   const today = new Date().toLocaleDateString("en-US", {
+      //     year: "numeric",
+      //     month: "long",
+      //     day: "numeric",
+      //   });
+
+      //   const updatedJournals = {
+      //     ...journals,
+      //     [today]: [...(journals[today] || []), savedJournal],
+      //   };
+
+      //   setJournals(updatedJournals);
+      //   setNewJournal({ title: "", content: "" });
+      // } else {
+      //   alert("Failed to save journal. Please try again.");
+      // }
+
+      axiosInstance.post("http://localhost:8080/v1/journals", journalData).then((response) => {
+        console.log("Journal saved successfully!");
         alert("Journal saved successfully!");
+        window.location.reload();
 
         const today = new Date().toLocaleDateString("en-US", {
           year: "numeric",
@@ -92,14 +137,12 @@ export default function JournalPage() {
 
         const updatedJournals = {
           ...journals,
-          [today]: [...(journals[today] || []), savedJournal],
+          [today]: [...(journals[today] || []), response.data],
         };
 
         setJournals(updatedJournals);
         setNewJournal({ title: "", content: "" });
-      } else {
-        alert("Failed to save journal. Please try again.");
-      }
+      }).catch((error) => {});
     } catch (error) {
       console.error("Error saving journal:", error);
       alert("An error occurred while saving the journal.");
@@ -108,20 +151,27 @@ export default function JournalPage() {
 
   const openJournal = async (entry) => {
     try {
-      const response = await fetch(`http://localhost:8080/v1/journals/${entry.id}`, {
-        credentials: 'include',
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // const response = await fetch(`http://localhost:8080/v1/journals/${entry.id}`, {
+      //   credentials: 'include',
+      //   method: "GET",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      // });
 
-      if (response.ok) {
-        const journalData = await response.json();
-        setSelectedJournal(journalData); // Open the selected journal in a popup
-      } else {
-        console.error("Failed to fetch journal by ID");
-      }
+      // if (response.ok) {
+      //   const journalData = await response.json();
+      //   setSelectedJournal(journalData); // Open the selected journal in a popup
+      // } else {
+      //   console.error("Failed to fetch journal by ID");
+      // }
+
+      axiosInstance.get(`http://localhost:8080/v1/journals/${entry.id}`).then((response) => {
+        console.log("Journal fetched successfully!");
+        setSelectedJournal(response.data);
+      }).catch((error) => {
+        console.error("Error fetching journal by ID:", error);
+      });
     } catch (error) {
       console.error("Error fetching journal by ID:", error);
     }
@@ -135,25 +185,14 @@ export default function JournalPage() {
     if (!selectedJournal) return;
 
     try {
-      const response = await fetch(`http://localhost:8080/v1/journals/${selectedJournal.id}`, {
-        credentials: 'include',
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        alert("Journal deleted successfully!");
-
-        // Update local state to remove the deleted journal
+      axiosInstance.delete(`http://localhost:8080/v1/journals/${selectedJournal.id}`).then((response) => {
+        console.log("Journal deleted successfully!");
         const updatedJournals = { ...journals };
         const date = new Date(selectedJournal.createdAt).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
         });
-
         updatedJournals[date] = updatedJournals[date].filter(
           (journal) => journal.id !== selectedJournal.id
         );
@@ -164,9 +203,11 @@ export default function JournalPage() {
 
         setJournals(updatedJournals);
         closeJournal();
-      } else {
-        alert("Failed to delete journal. Please try again.");
-      }
+      }).catch((error) => {
+        console.error("Error deleting journal:", error);
+        alert("An error occurred while deleting the journal.");
+      });
+
     } catch (error) {
       console.error("Error deleting journal:", error);
       alert("An error occurred while deleting the journal.");
@@ -238,9 +279,9 @@ export default function JournalPage() {
                     >
                       <h4 className="text-md font-semibold text-gray-800">{entry.title}</h4>
                       <p className="text-sm text-gray-600 truncate">
-                        {entry.content.length > 30
-                          ? `${entry.content.slice(0, 30)}...`
-                          : entry.content}
+                        {entry?.content?.length > 30
+                          ? `${entry?.content?.slice(0, 30)}...`
+                          : entry?.content}
                       </p>
                     </div>
                   ))}
@@ -253,29 +294,29 @@ export default function JournalPage() {
 
       {/* Popup for Viewing Selected Journal */}
       {/* Popup for Viewing Selected Journal */}
-{selectedJournal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div className="bg-white w-1/2 p-6 rounded-lg shadow-lg">
-      <h2 className="text-xl font-bold text-gray-800">{selectedJournal.title}</h2>
-      <div className="border-b-2 border-gray-300 mt-2 mb-4"></div>
-      <p className="text-gray-700">{selectedJournal.content}</p>
-      <div className="flex justify-end gap-4 mt-4"> {/* Use `gap-4` to create spacing */}
-        <Button
-          onClick={deleteJournal}
-          className="bg-red-400 text-white hover:bg-red-500 px-4 py-2"
-        >
-          Delete
-        </Button>
-        <Button
-          onClick={closeJournal}
-          className="bg-gray-400 text-white hover:bg-gray-500 px-4 py-2"
-        >
-          Back
-        </Button>
-      </div>
-    </div>
-  </div>
-)}
+      {selectedJournal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white w-1/2 p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold text-gray-800">{selectedJournal.title}</h2>
+            <div className="border-b-2 border-gray-300 mt-2 mb-4"></div>
+            <p className="text-gray-700">{selectedJournal.content}</p>
+            <div className="flex justify-end gap-4 mt-4"> {/* Use `gap-4` to create spacing */}
+              <Button
+                onClick={deleteJournal}
+                className="bg-red-400 text-white hover:bg-red-500 px-4 py-2"
+              >
+                Delete
+              </Button>
+              <Button
+                onClick={closeJournal}
+                className="bg-gray-400 text-white hover:bg-gray-500 px-4 py-2"
+              >
+                Back
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
