@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
 import { axiosInstance } from "@/utils/axiosInstance";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default function JournalPage() {
   const [journals, setJournals] = useState({});
   const [newJournal, setNewJournal] = useState({ title: "", content: "" });
   const [selectedJournal, setSelectedJournal] = useState(null); // State for popup
+  const getAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY)
+  const [model, setModel] = useState(getAI.getGenerativeModel({ model: "gemini-1.5-flash" }))
 
   // Fetch journals on component mount
   useEffect(() => {
@@ -127,7 +130,48 @@ export default function JournalPage() {
       axiosInstance.post("http://localhost:8080/v1/journals", journalData).then((response) => {
         console.log("Journal saved successfully!");
         alert("Journal saved successfully!");
-        window.location.reload();
+        model.generateContent([
+          `
+Title: ${journalData.title}  
+
+ Content: ${journalData.content}
+
+CurrentTime: 12.30 AM
+
+This is a journal of a user. You need to detect his current mood and suggest him some activities. 
+
+The response needs to be in json format like this: 
+
+{ 
+  "title": "some title", 
+  "subactivites": ["activity1", "activity2"] 
+} 
+
+ There can be any number of sub-activites. Be precise with the activities. The sub-activity is something can be achieved right now. Not like a daily goal, rather something that should be done one time to uplift the mood. Also suggest activity keeping in mind the current time.
+ Don't put a single extra character. this will break my code as I will JSON.parse the response.
+          `
+        ]).then((modelResponse) => {
+          const generateContent = modelResponse.response.text()
+          console.log("Generated content:", generateContent)
+          const jsonMatch = generateContent.match(/\{(?:[^{}]|(?:\{.*\}))*\}/);
+          if (jsonMatch) {
+            const contentJson = JSON.parse(jsonMatch[0]);
+            axiosInstance.post("http://localhost:8080/v1/activity", 
+              {
+                "title": contentJson.title,
+                "subActivities": contentJson.subactivities
+              }
+            ).then((response) => {
+              console.log("Journal saved successfully!", response.data);
+              window.location.reload()
+            }).catch((error) => { 
+              console.error("Error saving activity:", error);
+            })
+            console.log(contentJson);
+          } else {
+            console.log("No JSON content found.");
+          }
+        })
 
         const today = new Date().toLocaleDateString("en-US", {
           year: "numeric",
@@ -142,7 +186,7 @@ export default function JournalPage() {
 
         setJournals(updatedJournals);
         setNewJournal({ title: "", content: "" });
-      }).catch((error) => {});
+      }).catch((error) => { });
     } catch (error) {
       console.error("Error saving journal:", error);
       alert("An error occurred while saving the journal.");
@@ -167,8 +211,11 @@ export default function JournalPage() {
       // }
 
       axiosInstance.get(`http://localhost:8080/v1/journals/${entry.id}`).then((response) => {
-        console.log("Journal fetched successfully!");
-        setSelectedJournal(response.data);
+        console.log("Journal fetched successfully!", response.data);
+        setSelectedJournal({
+          ...response.data,
+          id: entry.id,
+        });
       }).catch((error) => {
         console.error("Error fetching journal by ID:", error);
       });
@@ -183,7 +230,7 @@ export default function JournalPage() {
 
   const deleteJournal = async () => {
     if (!selectedJournal) return;
-
+    console.log("Deleting journal:", selectedJournal);
     try {
       axiosInstance.delete(`http://localhost:8080/v1/journals/${selectedJournal.id}`).then((response) => {
         console.log("Journal deleted successfully!");

@@ -42,8 +42,7 @@ export function ChatComponent({ isNewChat = true }) {
     const MOOD_MESSAGE_THRESHOLD = 1
     const [moodValue, setMoodValue] = useState(5)
 
-    const handleMessageSend = async () => {
-        const messageText = messageInputRef.current.value
+    const handleMessageSend = async (messageText, chat) => {
         if (messageText.trim() === "") return
         const newMessage = {
             message: messageText,
@@ -166,30 +165,7 @@ export function ChatComponent({ isNewChat = true }) {
                     if (pastMessagesResponse.data.length == 1) {
                         const messageText = pastMessagesResponse.data[0].message
                         setResponseLoading(true)
-                        tempChat.sendMessage(messageText).then((response) => {
-                            console.log("Response: ", response)
-                            setMessages(prev => [...prev,
-                            {
-                                isUser: false,
-                                sentAt: new Date().toLocaleTimeString(),
-                                message: response.response.candidates[0].content.parts.find(part => part.hasOwnProperty('text')).text,
-                            }])
-                            axiosInstance.post(apiUrls.addMessages, {
-                                message: response.response.candidates[0].content.parts.find(part => part.hasOwnProperty('text')).text,
-                                sessionId: params.chatid,
-                                isUser: false,
-                            }).then((response) => {
-                                console.log(response)
-                                moodMessageQueue.current.push({
-                                    message: response.response.candidates[0].content.parts.find(part => part.hasOwnProperty('text')).text,
-                                    isUser: false
-                                })
-                            })
-                            setResponseLoading(false)
-                        }).catch((e) => {
-                            console.error(e)
-                            setResponseLoading(false)
-                        })
+                        handleMessageSend(messageText, tempChat)
                     }
                     setChat(tempChat)
                 }).catch((e) => {
@@ -302,7 +278,7 @@ Your response:
             <div className="flex flex-row w-full h-16 bg-white p-3 rounded-b-3xl gap-3 items-center">
                 <form onSubmit={(e) => {
                     e.preventDefault()
-                    handleMessageSend()
+                    handleMessageSend(messageInputRef.current.value, chat)
                 }} className="flex flex-row w-full h-16 bg-white p-3 rounded-b-3xl gap-3 items-center">
                     <input
                         ref={messageInputRef}

@@ -65,7 +65,7 @@ export default function EditProfilePage() {
         fullName: profileData.name,
         occupation: profileData.occupation,
         hobbies: profileData.hobbies,
-        profilePic: profilePicture,
+        profilePic: "https://sm.ign.com/t/ign_nordic/cover/a/avatar-gen/avatar-generations_prsz.300.jpg",
       }).then((response) => {
         console.log("Profile data saved successfully!");
       }).catch((error) => {
