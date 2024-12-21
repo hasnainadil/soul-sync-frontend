@@ -47,7 +47,7 @@ export const apiUrls = {
     register: apiBaseUrl + "/auth/register",
     verifyotp: apiBaseUrl + "/auth/verify",
     userData : apiBaseUrl + "/user",
-
+    getactivities : apiBaseUrl + "/activity",
 }
 
 

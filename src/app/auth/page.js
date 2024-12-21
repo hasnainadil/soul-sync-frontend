@@ -101,7 +101,7 @@ function LogInComponent({ currentMode, setCurrentMode }) {
                     <button type="submit" className="w-full px-3 py-1 rounded-2xl shadow-inner bg-[#719189] text-gray-200 font-semibold text-primary-foreground">Log In</button>
                 </form>
                 <div className="flex flex-row gap-2">
-                    <p>Don't have an account?</p>
+                    <p>Don&apos;t have an account?</p>
                     <button disabled={buttonLoading} className="text-[#719189] font-bold hover:underline" onClick={() => {
                         setCurrentMode(register);
                     }}>Register</button>
@@ -314,10 +314,10 @@ function RegisterComponent({ currentMode, setCurrentMode }) {
                     <button type="submit" className="w-full px-3 py-1 rounded-2xl bg-[#c09392] text-gray-200 font-semibold text-primary-foreground mt-6">Register</button>
                 </form>
                 <div className="flex flex-row gap-2">
-                    <p>Don't have an account?</p>
+                    <p>Don&apos;t have an account?</p>
                     <button className="text-[#c09d92] font-bold hover:underline" onClick={() => {
                         setCurrentMode(login);
-                    }}>Register</button>
+                    }}>Login</button>
                 </div>
             </div>
         </div>

@@ -156,7 +156,7 @@ The response needs to be in json format like this:
           const jsonMatch = generateContent.match(/\{(?:[^{}]|(?:\{.*\}))*\}/);
           if (jsonMatch) {
             const contentJson = JSON.parse(jsonMatch[0]);
-            axiosInstance.post("http://localhost:8080/v1/activity", 
+            axiosInstance.post("http://localhost:8080/v1/activity",
               {
                 "title": contentJson.title,
                 "subActivities": contentJson.subactivities
@@ -164,7 +164,8 @@ The response needs to be in json format like this:
             ).then((response) => {
               console.log("Journal saved successfully!", response.data);
               window.location.reload()
-            }).catch((error) => { 
+            }).catch((error) => {
+              window.location.reload()
               console.error("Error saving activity:", error);
             })
             console.log(contentJson);

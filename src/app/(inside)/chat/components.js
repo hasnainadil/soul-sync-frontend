@@ -39,7 +39,7 @@ export function ChatComponent({ isNewChat = true }) {
     const [creatingSessionLoading, setCreatingSessionLoading] = useState(false)
     const scrollAreaRef = useRef(null)
     const moodMessageQueue = useRef([])
-    const MOOD_MESSAGE_THRESHOLD = 1
+    const MOOD_MESSAGE_THRESHOLD = 5
     const [moodValue, setMoodValue] = useState(5)
 
     const handleMessageSend = async (messageText, chat) => {
@@ -141,14 +141,11 @@ export function ChatComponent({ isNewChat = true }) {
                 const history_added = [{
                     isUser: true,
                     sentAt: new Date().toLocaleTimeString(),
-                    message: `You are interacting with an user of Soul Sync. Soul Sync is a personalized mental healt tracking website. Talk with your user. See if he or she is sad or happy and if the user ever seems to be in a bad mood, try to cheer him or her up. You can also ask the user about his or her day.`
+                    message: `You are interacting with an user of Soul Sync. Soul Sync is a personalized mental healt tracking website. Talk with your user. See if he or she is sad or happy and if the user ever seems to be in a bad mood, try to cheer him or her up. You can also ask the user about his or her day. User's name is Hasnain Adil.`
                 }]
                 axiosInstance.get(apiUrls.chatById(params.chatid)).then((pastMessagesResponse) => {
                     console.log("Old messages of the chat: ", pastMessagesResponse.data)
                     setMessages(pastMessagesResponse.data)
-                    if (scrollAreaRef.current) {
-                        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
-                    }
                     history_added.push(...pastMessagesResponse.data)
                     moodMessageQueue.current.push(pastMessagesResponse.data.map((message) => ({
                         message: message.message,
@@ -180,9 +177,10 @@ export function ChatComponent({ isNewChat = true }) {
         // number of messages with isUser = true to be MOOD_MESSAGE_THRESHOLD
         console.log("Mood message queue: ", moodMessageQueue.current)
         const trackMood = async () => {
-            const result = await model.generateContent([
-                `
-These are some messages between the user and the bot currently, given a json stringified array of messages: ${JSON.stringify(moodMessageQueue.current)}
+            try {
+                model.generateContent([
+                    `
+These are some messages between the user and the bot currently, given a json stringified array of messages: ${JSON.stringify(messages.map((message) => ({ message: message.message, isUser: message.isUser })))}.
 You need to check the mood and give me a score of the mood of the user between 0 to 10. 0 being the saddest and 10 being the happiest. 
 Your response:
 {
@@ -190,16 +188,50 @@ Your response:
 }
 5 here is just an example. strick to the format please.
 `
-            ])
-            console.log("Mood tracking response: ", result)
-            const mood = JSON.parse(result.response.candidates[0].content.parts.find(part => part.hasOwnProperty('text')).text)
-            setMoodValue(mood.mood)
+                ]).then((modelResponse) => {
+                    const generateContent = modelResponse.response.text()
+                    console.log("Generated content:", generateContent)
+                    const jsonMatch = generateContent.match(/\{(?:[^{}]|(?:\{.*\}))*\}/);
+                    if (jsonMatch) {
+                        const contentJson = JSON.parse(jsonMatch[0]);
+                        setMoodValue(contentJson.mood)
+                    }
+                }).catch((e) => {
+                    console.error(e)
+                })
+            } catch (e) {
+                console.error(e)
+            }
         }
-
-        if (moodMessageQueue.current.filter(message => message.isUser).length >= MOOD_MESSAGE_THRESHOLD) {
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+        }
+        if (messages.filter(message => message.isUser).length >= MOOD_MESSAGE_THRESHOLD) {
             trackMood()
         }
-    }, [moodMessageQueue.current])
+    }, [messages])
+
+    useEffect(() => {
+        console.log("Mood value: ", moodValue)
+        if(moodValue < 2){
+            chat.sendMessage("User seems to be in a bad mood. Try to cheer him or her up. Ask about his or her day. Try to make the user happy. Respond with a message that will make the user happy.").then((response) => {
+                console.log("Response: ", response)
+                setMessages(prev => [...prev,
+                {
+                    isUser: false,
+                    sentAt: new Date().toLocaleTimeString(),
+                    message: response.response.candidates[0].content.parts.find(part => part.hasOwnProperty('text')).text,
+                    // role: "model",
+                    // parts: [
+                    //     {
+                    //         text: response.response.candidates[0].content.parts.find(part => part.hasOwnProperty('text')).text
+                    //     }
+                    // ]
+                }])
+            })
+        }
+     }, [moodValue])
+
 
     if (!chat) return <LoadingComponent />
 
@@ -219,10 +251,10 @@ Your response:
                 </div>
                 <div
                     className={cn("absolute right-5 w-40 h-[10PX] rounded-3xl", `bg-gradient-to-r from-red-500 to-green-500 from-[${100 - moodValue * 10}%] to-[${moodValue * 10}%]`)}
-                    // style={{
-                    //     background: `linear-gradient(to right, red ${100 - moodValue * 10}%, green ${moodValue * 10}%)`,
-                    //     transition: "background 0.3s ease-in-out", // Smooth transition
-                    // }}
+                // style={{
+                //     background: `linear-gradient(to right, red ${100 - moodValue * 10}%, green ${moodValue * 10}%)`,
+                //     transition: "background 0.3s ease-in-out", // Smooth transition
+                // }}
                 ></div>
 
             </div>

@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Check } from "lucide-react";
+import { axiosInstance } from "@/utils/axiosInstance";
+import { apiUrls } from "@/utils/lib";
+import ScrollableContainer from "@/components/StyledScrollbar";
+
 
 export default function Dashboard() {
   const [moodData, setMoodData] = useState([]);
@@ -20,7 +24,7 @@ export default function Dashboard() {
     "Creative Spark Card",
   ]; // Array of fancy card names
 
-  
+
   useEffect(() => {
     // Mock data for testing
     setMoodData([
@@ -35,29 +39,54 @@ export default function Dashboard() {
     setAiConversations(121); // Example AI conversation count
 
     // Example task group
-    setTaskGroups([
-      {
-        title: "Moodlifting Activities",
-        tasks: [
-          { id: 1, title: "Morning workout", completed: false },
-          { id: 2, title: "Read a book", completed: false },
-          { id: 3, title: "Meditate for 15 minutes", completed: false },
-        ],
-      },
-      {
-        title: "Work Goals",
-        tasks: [
-          { id: 4, title: "Complete project report", completed: false },
-          { id: 5, title: "Prepare presentation", completed: false },
-        ],
-      },
-    ]);
+    // setTaskGroups([
+    //   {
+    //     title: "Moodlifting Activities",
+    //     tasks: [
+    //       { id: 1, title: "Morning workout", completed: false },
+    //       { id: 2, title: "Read a book", completed: false },
+    //       // { id: 3, title: "Meditate for 15 minutes", completed: false },
+    //     ],
+    //   },
+    //   {
+    //     title: "Work Goals",
+    //     tasks: [
+    //       { id: 4, title: "Complete project report", completed: false },
+    //       { id: 5, title: "Prepare presentation", completed: false },
+    //     ],
+    //   },
+    // ]);
+    axiosInstance.get(apiUrls.getactivities).then((response) => {
+      console.log(response.data);
+      // setTaskGroups(response.data);
+      setTaskGroups(response.data.map((group) => {
+        return {
+          title: group.title,
+          id: group.id,
+          tasks: group.subactivities.map((task) => {
+            return {
+              id: task.id,
+              title: task.title,
+              completed: task.isCompleted
+            }
+          })
+        }
+      }));
+    });
   }, []);
 
   const markTaskComplete = (groupIndex, taskIndex) => {
     const updatedTaskGroups = [...taskGroups];
     const task = updatedTaskGroups[groupIndex].tasks[taskIndex];
     task.completed = true;
+    axiosInstance.put(apiUrls.getactivities, {
+      "activityId": updatedTaskGroups[groupIndex]?.id,
+      "subActivityId": updatedTaskGroups[groupIndex].tasks[taskIndex]?.id
+    }).then((response) => {
+      console.log(response);
+    }).catch((error) => {
+      console.log(error);
+    });
 
     setTaskGroups(updatedTaskGroups);
 
@@ -71,7 +100,7 @@ export default function Dashboard() {
       setUnlockedGifts([...unlockedGifts, randomGift]); // Add to unlocked gifts
       setCompletedGroups([...completedGroups, groupIndex]);
       setNotification(`🎉 You have received the "${randomGift}"!`);
-      
+
       // Clear notification after 5 seconds
       setTimeout(() => {
         setNotification("");
@@ -89,7 +118,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-primary p-10 gap-6">
+    <div className="min-h-screen flex flex-col bg-primary p-10 gap-6 ">
       {/* Graph and Comment Section */}
       <div className="flex flex-row gap-6">
         {/* Mood Graph */}
@@ -140,7 +169,7 @@ export default function Dashboard() {
         {/* Task List */}
         <div className="w-1/3 bg-white shadow-md rounded-lg p-6 min-h-64 relative">
           <h2 className="text-xl font-bold text-gray-800">Task List</h2>
-          <div className="mt-4 space-y-4 overflow-y-auto max-h-48">
+          <ScrollableContainer className="mt-4 space-y-4 overflow-y-auto max-h-48">
             {taskGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">{group.title}</h3>
@@ -148,17 +177,15 @@ export default function Dashboard() {
                   {group.tasks.map((task, taskIndex) => (
                     <li
                       key={task.id}
-                      className={`flex items-center justify-between p-2 bg-gray-100 rounded-md shadow-sm hover:bg-gray-200 transition-all duration-1000 ${
-                        task.completed ? "opacity-0 transform translate-y-4" : ""
-                      }`}
+                      className={`flex items-center justify-between p-2 bg-gray-100 rounded-md shadow-sm hover:bg-gray-200 transition-all duration-1000 ${task.completed ? "opacity-0 transform translate-y-4" : ""
+                        }`}
                     >
                       <span className="text-gray-700">{task.title}</span>
                       <div
-                        className={`w-6 h-6 flex items-center justify-center rounded-full cursor-pointer ${
-                          task.completed
+                        className={`w-6 h-6 flex items-center justify-center rounded-full cursor-pointer ${task.completed
                             ? "bg-green-500 text-white"
                             : "bg-gray-300 text-gray-400"
-                        }`}
+                          }`}
                         onClick={() => markTaskComplete(groupIndex, taskIndex)}
                       >
                         {task.completed && <Check className="w-4 h-4" />}
@@ -168,7 +195,7 @@ export default function Dashboard() {
                 </ul>
               </div>
             ))}
-          </div>
+          </ScrollableContainer>
           {/* Notification in the top-right corner */}
           {notification && (
             <div className="absolute top-2 right-2 bg-green-100 text-green-800 text-sm p-2 rounded shadow-md">
